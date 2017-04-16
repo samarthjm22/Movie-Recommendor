@@ -22,7 +22,7 @@ function varargout = maingui(varargin)
 
 % Edit the above text to modify the response to help maingui
 
-% Last Modified by GUIDE v2.5 16-Apr-2017 15:57:12
+% Last Modified by GUIDE v2.5 16-Apr-2017 23:50:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -32,6 +32,7 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @maingui_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
+
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -43,7 +44,6 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-
 % --- Executes just before maingui is made visible.
 function maingui_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -53,6 +53,9 @@ function maingui_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to maingui (see VARARGIN)
 
 % Choose default command line output for maingui
+load('ex8_movies.mat');
+handles.my_ratings = zeros(size(Y,1), 1);
+
 handles.output = hObject;
 
 % Update handles structure
@@ -73,52 +76,114 @@ function varargout = maingui_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)   
+% --- Executes on button press in recommend.
+function recommend_Callback(hObject, eventdata, handles)
+% hObject    handle to recommend (see GCBO)   
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+if (size(find(handles.my_ratings ~= 0)) ~= 0)
+    %  Y is a 1682x943 matrix, containing ratings (1-5) of 1682 movies by 
+%  943 users
+%
+%  R is a 1682x943 matrix, where R(i,j) = 1 if and only if user j gave a
+%  rating to movie i
+    load('ex8_movies.mat');
+%  Add our own ratings to the data matrix
+    Y = [handles.my_ratings Y];
+    R = [(handles.my_ratings ~= 0) R];
 
-% --- Executes on selection change in listbox1.
-function listbox1_Callback(hObject, eventdata, handles)
-% hObject    handle to listbox1 (see GCBO)
+    %  Normalize Ratings
+    [Ynorm, Ymean] = normalizeRatings(Y, R);
+    
+    %  Useful Values
+    num_users = size(Y, 2);
+    num_movies = size(Y, 1);
+    num_features = 10;
+    
+    % Set Initial Parameters (Theta, X)
+    X = randn(num_movies, num_features);
+    Theta = randn(num_users, num_features);
+    
+    initial_parameters = [X(:); Theta(:)];
+    
+    % Set options for fmincg
+    %options = optimset('GradObj', 'on', 'MaxIter', 100);
+    
+    % Set Regularization
+    lambda = 10;
+    %theta = fmincg (@(t)(cofiCostFunc(t, Ynorm, R, num_users, num_movies, ...
+    %    num_features, lambda)), ...
+    %    initial_parameters, options);
+    
+    % Unfold the returned theta back into U and W
+   % X = reshape(theta(1:num_movies*num_features), num_movies, num_features);
+   % Theta = reshape(theta(num_movies*num_features+1:end), ...
+    %    num_users, num_features);
+    
+   
+    
+    %% ================== Part 8: Recommendation for you ====================
+    %  After training the model, you can now make recommendations by computing
+    %  the predictions matrix.
+    %
+    
+    p = X * Theta';
+    my_predictions = p(:,1) + Ymean;
+    
+    movieList = loadMovieList();
+    
+    [r, ix] = sort(my_predictions, 'descend');
+    text = 'dsdfdfd'
+   % for i=1:10
+   %     j = ix(i);
+   %      text = strcat(text,strcat(strcat('\n Movie :',movieList(j)),strcat(' Rating :',my_predictions(j))));
+   % end
+   % set(handles.outputbox,'String') = text;    
+    end 
+   
+   
+
+
+% --- Executes on selection change in movielist.
+function movielist_Callback(hObject, eventdata, handles)
+% hObject    handle to movielist (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns listbox1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from listbox1
-movie = get(handles.listbox1,'Value');
-movie
+% Hints: contents = cellstr(get(hObject,'String')) returns movielist contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from movielist
+
 
 
 
 % --- Executes during object creation, after setting all properties.
-function listbox1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to listbox1 (see GCBO)
+function movielist_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to movielist (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: listbox controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
+
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
 
 
-function edit3_Callback(hObject, eventdata, handles)
-% hObject    handle to edit3 (see GCBO)
+function outputbox_Callback(hObject, eventdata, handles)
+% hObject    handle to outputbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of edit3 as text
-%        str2double(get(hObject,'String')) returns contents of edit3 as a double
+% Hints: get(hObject,'String') returns contents of outputbox as text
+%        str2double(get(hObject,'String')) returns contents of outputbox as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function edit3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit3 (see GCBO)
+function outputbox_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to outputbox (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -129,19 +194,19 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on selection change in popupmenu1.
-function popupmenu1_Callback(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
+% --- Executes on selection change in rating.
+function rating_Callback(hObject, eventdata, handles)
+% hObject    handle to rating (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+% Hints: contents = cellstr(get(hObject,'String')) returns rating contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from rating
 
 
 % --- Executes during object creation, after setting all properties.
-function popupmenu1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenu1 (see GCBO)
+function rating_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to rating (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -152,8 +217,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in pushbutton2.
-function pushbutton2_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton2 (see GCBO)
+% --- Executes on button press in rate.
+function rate_Callback(hObject, eventdata, handles)
+% hObject    handle to rate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+movie = get(handles.movielist,'Value')
+rated_val = get(handles.rating,'Value')
+handles.my_ratings(movie) = rated_val;
+guidata(hObject, handles);
+
